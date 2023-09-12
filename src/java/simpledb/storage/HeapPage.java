@@ -69,23 +69,26 @@ public class HeapPage implements Page {
     }
 
     /** Retrieve the number of tuples on this page.
-        @return the number of tuples on this page
+        @return the number of tuples on this page；该页面可以容纳的页面数量，而非已经占用的页面数量
     */
-    private int getNumTuples() {        
-        // some code goes here
-        return 0;
-
+    private int getNumTuples() {
+        int nrecbytes = 0;
+        for(int i=0; i<this.td.numFields(); i++){
+            nrecbytes+=td.getFieldType(i).getLen();
+        }
+        int nrecords = (BufferPool.getPageSize() * 8) /  (nrecbytes * 8 + 1);  //floor comes for free
+        return nrecords;
     }
 
     /**
      * Computes the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
-    private int getHeaderSize() {        
-        
-        // some code goes here
-        return 0;
-                 
+    private int getHeaderSize() {
+        int nheaderbytes = (this.numSlots / 8);
+        if (nheaderbytes * 8 < this.numSlots)
+            nheaderbytes++;  //ceiling
+        return nheaderbytes;
     }
     
     /** Return a view of this page before it was modified
@@ -117,8 +120,7 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        return this.pid;
     }
 
     /**
@@ -287,16 +289,36 @@ public class HeapPage implements Page {
      * Returns the number of empty slots on this page.
      */
     public int getNumEmptySlots() {
-        // some code goes here
-        return 0;
+        int usedSlotNum = 0;
+        for (int i = 0; i < header.length; i++) {//注意，如果对byte边右移边统计1的个数，不能以byte==0为循环终止条件，因为逻辑右移是将byte扩展为32位int然后右移，如果是8个1，右移8次后byte仍然不为0
+            for (int j = 0; j < 8; j++) {
+                if((this.header[i] & (1<<j))!=0){//不能用==1作为判断条件，1不在最右边最低位的时候，左边的值不等于1
+                    usedSlotNum++;
+                }
+            }
+        }
+        return this.numSlots-usedSlotNum;
+    }
+
+
+    public String byteToBinaryString(byte value) {
+        StringBuilder binaryString = new StringBuilder(8);
+        for (int i = 7; i >= 0; i--) {
+            int bit = (value >> i) & 1;
+            binaryString.append(bit);
+        }
+        return binaryString.toString();
     }
 
     /**
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-        // some code goes here
-        return false;
+        int headerPos = i/8;
+        byte n = this.header[headerPos];
+        int bytePos = i%8;
+        int judge = (n>>>bytePos) & 1;
+        return judge == 1;
     }
 
     /**
@@ -312,8 +334,12 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
-        // some code goes here
-        return null;
+        ArrayList<Tuple> usedTuples = new ArrayList<>();
+        for (int i = 0; i < this.numSlots; i++) {
+            if(this.isSlotUsed(i))
+                usedTuples.add(this.tuples[i]);
+        }
+        return usedTuples.iterator();
     }
 
 }

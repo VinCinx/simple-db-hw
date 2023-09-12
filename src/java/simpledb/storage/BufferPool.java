@@ -9,6 +9,7 @@ import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,13 +34,15 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    private final HashMap<Integer,Page> bufferPool;//缓冲池由很多页面组成，每个页面只能存储一个磁盘加载的页面；为什么不用list或者数组呢，因为利用哈希表可以加快数据页面在buffer pool中的定位，而不需要线性时间
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // some code goes here
+        this.bufferPool = new HashMap<>(numPages);//在物理内存中申请一块可以容纳numPages个数据页的空间
     }
     
     public static int getPageSize() {
@@ -65,7 +68,7 @@ public class BufferPool {
      * is present, it should be returned.  If it is not present, it should
      * be added to the buffer pool and returned.  If there is insufficient
      * space in the buffer pool, a page should be evicted and the new page
-     * should be added in its place.
+     * should be added in its place.；如果缓冲池中没有足够的空间，则应驱逐页面并添加新页面来代替它。
      *
      * @param tid the ID of the transaction requesting the page
      * @param pid the ID of the requested page
@@ -74,7 +77,16 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        if(this.bufferPool.containsKey(pid.hashCode())){
+            return this.bufferPool.get(pid.hashCode());
+        }else {
+            int tableId = pid.getTableId();
+            DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+            Page page = file.readPage(pid);
+            //buffer pool没有足够的空间了
+            this.bufferPool.put(pid.hashCode(), page);
+            return page;
+        }
     }
 
     /**

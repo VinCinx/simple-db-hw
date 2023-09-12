@@ -119,6 +119,7 @@
             </echo>
         </then>
     </if>
+
     <if> <available file="${lib}/zql.jar" /> <then>
             <echo file=".classpath" append="true">
                 &lt;classpathentry kind=&quot;lib&quot; path=&quot;lib/zql.jar&quot;/&gt;

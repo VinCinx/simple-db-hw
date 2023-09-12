@@ -9,6 +9,9 @@ import simpledb.common.Utility;
 import simpledb.storage.*;
 import simpledb.systemtest.SimpleDbTestBase;
 
+/**
+ * lab1 exercise1
+ */
 public class TupleTest extends SimpleDbTestBase {
 
     /**

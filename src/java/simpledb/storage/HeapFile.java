@@ -20,8 +20,10 @@ import java.util.*;
  * @see HeapPage#HeapPage
  * @author Sam Madden
  */
-public class HeapFile implements DbFile {
+public class HeapFile implements DbFile{
 
+    private final File file;
+    private final TupleDesc td;
     /**
      * Constructs a heap file backed by the specified file.
      * 
@@ -30,7 +32,8 @@ public class HeapFile implements DbFile {
      *            file.
      */
     public HeapFile(File f, TupleDesc td) {
-        // some code goes here
+        this.file=f;
+        this.td=td;
     }
 
     /**
@@ -39,8 +42,7 @@ public class HeapFile implements DbFile {
      * @return the File backing this HeapFile on disk.
      */
     public File getFile() {
-        // some code goes here
-        return null;
+        return this.file;
     }
 
     /**
@@ -53,8 +55,7 @@ public class HeapFile implements DbFile {
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return file.getAbsolutePath().hashCode();
     }
 
     /**
@@ -63,14 +64,26 @@ public class HeapFile implements DbFile {
      * @return TupleDesc of this DbFile.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        return this.td;
     }
 
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
-        // some code goes here
-        return null;
+        Page page = null;
+        try {
+            RandomAccessFile raf = new RandomAccessFile(this.file, "r");
+            long offset = (long) BufferPool.getPageSize() *pid.getPageNumber();//raf.seek()接受的参数为long类型
+            raf.seek(offset);
+            byte[] data = new byte[BufferPool.getPageSize()];
+            raf.read(data);
+            raf.close();
+            if(pid instanceof HeapPageId){
+                page = new HeapPage((HeapPageId)pid, data);
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        return page;
     }
 
     // see DbFile.java for javadocs
@@ -81,10 +94,13 @@ public class HeapFile implements DbFile {
 
     /**
      * Returns the number of pages in this HeapFile.
+     * ；这里，写到lab1 Exercise5的时候卡住了
+     * 我暂时没有看视频，面向测试和说明文档编程，很不巧的是这两个文件并不能提供足够多的信息，所以我选择看一部分别人对于实验的理解，当然一般情况不看代码（用到不熟悉IO函数的时候，想出解决思路后适当参考，因为实验是理解DB，语言次要）
+     * 比如lab1写到这里，看了一个别人的文章后update了我对HeapPageId里pgNo的理解：
+     * 对于HeapPageId对应的表的磁盘文件，其中有n个页面，从文件开始读取页面，这些页面的pgNo依次递增，我一开始认为pgNo是全局的，现在看来确实没必要。
      */
     public int numPages() {
-        // some code goes here
-        return 0;
+        return (int)file.length()/BufferPool.getPageSize();
     }
 
     // see DbFile.java for javadocs
@@ -105,9 +121,7 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
-        // some code goes here
-        return null;
+        return new HeapFileIterator(tid, this);
     }
-
 }
 

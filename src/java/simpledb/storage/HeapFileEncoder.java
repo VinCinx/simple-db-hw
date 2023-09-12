@@ -33,7 +33,7 @@ public class HeapFileEncoder {
    * @throws IOException if the temporary/output file can't be opened
    */
   public static void convert(List<List<Integer>> tuples, File outFile, int npagebytes, int numFields) throws IOException {
-      File tempInput = File.createTempFile("tempTable", ".txt");
+      File tempInput = File.createTempFile("tempTable", ".txt");//为便于在写入outfile时读取待写入的内容，将tuples转换为一个临时文件
       tempInput.deleteOnExit();
       BufferedWriter bw = new BufferedWriter(new FileWriter(tempInput));
       for (List<Integer> tuple : tuples) {
@@ -189,7 +189,7 @@ public class HeapFileEncoder {
             
             for (i=0; i<nheaderbits; i++) {
                 if (i < recordcount)
-                    headerbyte |= (1 << (i % 8));
+                    headerbyte |= (1 << (i % 8));//对1左移动，不是对(i 2% 8)向左移动1位，位运算忘的。。
                 
                 if (((i+1) % 8) == 0) {
                     headerStream.writeByte(headerbyte);

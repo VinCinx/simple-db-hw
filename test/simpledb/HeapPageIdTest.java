@@ -10,6 +10,9 @@ import simpledb.systemtest.SimpleDbTestBase;
 
 import static org.junit.Assert.*;
 
+/**
+ * lab1 exercise4
+ */
 public class HeapPageIdTest extends SimpleDbTestBase {
 
     private HeapPageId pid;

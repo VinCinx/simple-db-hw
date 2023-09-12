@@ -13,6 +13,9 @@ import static org.junit.Assert.*;
 import org.junit.Assert;
 import junit.framework.JUnit4TestAdapter;
 
+/**
+ * lab1 exercise1
+ */
 public class TupleDescTest extends SimpleDbTestBase {
 
     /**

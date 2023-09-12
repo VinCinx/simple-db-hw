@@ -11,6 +11,9 @@ import simpledb.systemtest.SimpleDbTestBase;
 
 import static org.junit.Assert.*;
 
+/**
+ * lab1 exercise4
+ */
 public class RecordIdTest extends SimpleDbTestBase {
 
     private static RecordId hrid;

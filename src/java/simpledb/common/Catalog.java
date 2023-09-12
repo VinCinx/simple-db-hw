@@ -23,12 +23,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Catalog {
 
+    //Integer是file的id，id使用的是file文件名的hashcode
+    private final Map<Integer, DbFile> dbfiles;//这种方式在文件很大的时候太占用内存，实际不是这样吧? 不是这里DbFile可能存储的只是一个指针罢了
+    private final Map<Integer, String> tableNames;
+    private final Map<Integer, String> pkeyFieldNames;
+
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        // some code goes here
+        dbfiles=new HashMap<>();
+        tableNames=new HashMap<>();
+        pkeyFieldNames=new HashMap<>();
     }
 
     /**
@@ -41,7 +48,11 @@ public class Catalog {
      * @param pkeyField the name of the primary key field
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+        // 这里将使用一个class包裹一下，精简成只用一个hashmap更好，原来我是这么想的，觉得实验中可能尽量不要新建辅助类，所以改成这样。。
+        // 做到lab1 exercise5 实现HeapFile的iterator的时候证明我多虑了，新建类很正常。
+        dbfiles.put(file.getId(), file);
+        tableNames.put(file.getId(), name);
+        pkeyFieldNames.put(file.getId(), pkeyField);
     }
 
     public void addTable(DbFile file, String name) {
@@ -64,8 +75,12 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        for (Integer id: tableNames.keySet()) {
+            if (tableNames.get(id).equals(name)) {
+                return id;
+            }
+        }
+       throw new NoSuchElementException();
     }
 
     /**
@@ -75,8 +90,11 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if(dbfiles.containsKey(tableid)){
+            DbFile file = dbfiles.get(tableid);
+            return file.getTupleDesc();
+        }
+        throw new NoSuchElementException();
     }
 
     /**
@@ -86,13 +104,15 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if(dbfiles.containsKey(tableid))
+            return dbfiles.get(tableid);
+        throw new NoSuchElementException();
     }
 
     public String getPrimaryKey(int tableid) {
-        // some code goes here
-        return null;
+        if(pkeyFieldNames.containsKey(tableid))
+            return pkeyFieldNames.get(tableid);
+        throw new NoSuchElementException();
     }
 
     public Iterator<Integer> tableIdIterator() {
@@ -101,13 +121,17 @@ public class Catalog {
     }
 
     public String getTableName(int id) {
+        if(tableNames.containsKey(id))
+            return tableNames.get(id);
         // some code goes here
         return null;
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
-        // some code goes here
+        this.dbfiles.clear();
+        this.tableNames.clear();
+        this.pkeyFieldNames.clear();
     }
     
     /**

@@ -18,6 +18,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import junit.framework.JUnit4TestAdapter;
 
+/**
+ * lab1 exercise4
+ */
 public class HeapPageReadTest extends SimpleDbTestBase {
     private HeapPageId pid;
 
@@ -100,6 +103,12 @@ public class HeapPageReadTest extends SimpleDbTestBase {
             assertEquals(EXAMPLE_VALUES[row][1], f1.getValue());
             row++;
         }
+        assertEquals(row, EXAMPLE_VALUES.length);
+        /**
+         * 这个测试用例非常不完备，可能导致代码为之后的实验留坑
+         * 1.只要EXAMPLE_VALUES够长，EXAMPLE_DATA可能包含不只一个页面，此测试用例默认一个页面了
+         * 2.EXAMPLE_DATA中，每个页面中的slot都是顺序占用的，有效的tuple相邻，testIterator()没有考虑删除某个中间的tuple的情况——这就导致我一开始对于page的testIterator()只是简单截取了page的tuple[]的前面连续的一部分，截取使用的长度为已经占用的slot，测试也能通过，实际上这是错的。已经占用的slot不一定连续分布在在tuple[]前面
+         */
     }
 
     /**

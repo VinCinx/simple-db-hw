@@ -15,6 +15,9 @@ import static org.junit.Assert.*;
 import junit.framework.JUnit4TestAdapter;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab1 exercise5
+ */
 public class HeapFileReadTest extends SimpleDbTestBase {
     private HeapFile hf;
     private TransactionId tid;
