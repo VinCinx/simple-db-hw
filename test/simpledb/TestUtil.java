@@ -196,7 +196,7 @@ public class TestUtil {
      * Stub DbFile class for unit testing.
      */
     public static class SkeletonFile implements DbFile {
-        private final int tableid;
+        private final int tableid;//正常情况下tableid根据表的磁盘文件名进行哈希得到，id不可控，测试的时候为了可以设定一个tableid，这里实现DbFile并添加了tableid变量
         private final TupleDesc td;
 
         public SkeletonFile(int tableid, TupleDesc td) {
