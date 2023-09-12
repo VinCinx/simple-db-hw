@@ -86,3 +86,9 @@ HeapFile比较难，可以参照AbstractDbFileIterator编写，由于不能一�
 ## **Exercise 6**
 
 水到渠成，借助前面实现的内容实现SeqScan，用于一个事务中读取文件，利用HeapFileIterator就行了。注意reset(int tableid, String tableAlias)方法，不仅仅是修改这两个SeqScan结构中变量，reset的含义是为事务重新设置一个要读的表，相应的HeapFileIterator等内容也要改变。
+
+
+
+截止lab1的类图
+
+![lab1](lab1-writeup.assets/lab1-4512592.png)
