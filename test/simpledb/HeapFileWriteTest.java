@@ -14,6 +14,9 @@ import simpledb.transaction.TransactionId;
 
 import java.util.Arrays;
 
+/**
+ * lab2 exercise3
+ */
 public class HeapFileWriteTest extends TestUtil.CreateHeapFile {
     private TransactionId tid;
 

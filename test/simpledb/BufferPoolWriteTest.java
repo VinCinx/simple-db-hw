@@ -21,6 +21,9 @@ import static org.junit.Assert.*;
 import junit.framework.JUnit4TestAdapter;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab2 exercise3
+ */
 public class BufferPoolWriteTest extends TestUtil.CreateHeapFile {
     private TransactionId tid;
 
@@ -48,7 +51,7 @@ public class BufferPoolWriteTest extends TestUtil.CreateHeapFile {
                 bw.close();
     			HeapPage p = new HeapPage(new HeapPageId(super.getId(), super.numPages() - 1),
     					HeapPage.createEmptyPageData());
-    	        p.insertTuple(t);
+    	        p.insertTuple(t);//todo 这个insert既没有反映在磁盘上，也没有反映在缓存中。。。。。
     			dirtypages.add(p);
     		}
     		return dirtypages;

@@ -18,6 +18,12 @@ import java.io.IOException;
  */
 public class Delete extends Operator {
 
+    private TransactionId transactionId;
+    private OpIterator child;
+    private TupleDesc countTupleDesc;
+
+    private int callTimes=0;
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -30,24 +36,31 @@ public class Delete extends Operator {
      *            The child operator from which to read tuples for deletion
      */
     public Delete(TransactionId t, OpIterator child) {
-        // some code goes here
+        this.transactionId=t;
+        this.child=child;
+        Type[] typeAr=new Type[1];
+        String[] fieldAr=new String[1];
+        typeAr[0]=Type.INT_TYPE;
+        fieldAr[0]="count";
+        this.countTupleDesc=new TupleDesc(typeAr,fieldAr);
     }
 
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return countTupleDesc;
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.open();
+        super.open();
     }
 
     public void close() {
-        // some code goes here
+        super.close();
+        child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.rewind();
     }
 
     /**
@@ -60,19 +73,31 @@ public class Delete extends Operator {
      * @see BufferPool#deleteTuple
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        if(callTimes!=0)
+            return null;
+        callTimes++;
+        int count=0;
+        try {
+            while (child.hasNext()){
+                Database.getBufferPool().deleteTuple(transactionId,child.next());
+                count++;
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        Tuple res=new Tuple(countTupleDesc);
+        res.setField(0,new IntField(count));
+        return res;
     }
 
     @Override
     public OpIterator[] getChildren() {
-        // some code goes here
-        return null;
+        return new OpIterator[]{child};
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
-        // some code goes here
+        child=children[0];
     }
 
 }

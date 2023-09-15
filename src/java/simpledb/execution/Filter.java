@@ -12,6 +12,12 @@ import java.util.*;
  */
 public class Filter extends Operator {
 
+    private final Predicate predicate;
+
+    private  OpIterator child;
+
+    private  TupleDesc tupleDesc;
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -24,30 +30,33 @@ public class Filter extends Operator {
      *            The child operator
      */
     public Filter(Predicate p, OpIterator child) {
+        this.predicate=p;
+        this.child=child;
+        this.tupleDesc=child.getTupleDesc();//只是筛选掉一些Tuple，Tuple的字段并没有改变，在Project投影中Tuple才会改变新的Tuple可能只是选取了旧的Tuple中的某些列
         // some code goes here
     }
 
     public Predicate getPredicate() {
-        // some code goes here
-        return null;
+        return this.predicate;
     }
 
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+       return this.tupleDesc;
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // some code goes here
+        child.open();
+        super.open();
     }
 
     public void close() {
-        // some code goes here
+        super.close();
+        child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        child.rewind();
     }
 
     /**
@@ -61,19 +70,25 @@ public class Filter extends Operator {
      */
     protected Tuple fetchNext() throws NoSuchElementException,
             TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        if (!child.hasNext()) return null;
+        Tuple t = child.next();
+        while(!this.predicate.filter(t)){
+            if(!child.hasNext())
+                return null;
+            t = child.next();
+        }
+        return t;
     }
 
     @Override
     public OpIterator[] getChildren() {
-        // some code goes here
-        return null;
+        return new OpIterator[]{this.child};
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
-        // some code goes here
+        this.child=child;
+        this.tupleDesc=child.getTupleDesc();
     }
 
 }

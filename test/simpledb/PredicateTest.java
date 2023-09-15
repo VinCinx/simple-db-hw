@@ -9,6 +9,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import junit.framework.JUnit4TestAdapter;
 
+/**
+ * lab2 exercise1
+ */
 public class PredicateTest extends SimpleDbTestBase{
 
   /**

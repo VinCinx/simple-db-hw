@@ -22,6 +22,8 @@ import simpledb.transaction.TransactionId;
 
 /**
  * lab1 exercise6
+ * lab2 exercise5 doc: Because of the way we have implemented ScanTest.cacheTest, you will need to ensure that your flushPage and flushAllPages methods do no evict pages from the buffer pool to properly pass this test.
+ * lab2做了一点要求，符合这个要求原来已经通过的lab1 exercise6才不会出错
  * Dumps the contents of a table.
  * args[1] is the number of columns.  E.g., if it's 5, then ScanTest will end
  * up dumping the contents of f4.0.txt.

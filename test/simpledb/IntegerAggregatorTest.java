@@ -15,6 +15,9 @@ import simpledb.execution.IntegerAggregator;
 import simpledb.execution.OpIterator;
 import simpledb.systemtest.SimpleDbTestBase;
 
+/**
+ * lab2 exercise2
+ */
 public class IntegerAggregatorTest extends SimpleDbTestBase {
 
   final int width1 = 2;

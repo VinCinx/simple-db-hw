@@ -17,6 +17,9 @@ import simpledb.storage.Tuple;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab2 exercise4
+ */
 public class DeleteTest extends FilterBase {
     List<List<Integer>> expectedTuples = null;
 

@@ -17,6 +17,9 @@ import simpledb.storage.Tuple;
 import simpledb.storage.TupleDesc;
 import simpledb.systemtest.SimpleDbTestBase;
 
+/**
+ * lab2 exercise
+ */
 public class JoinTest extends SimpleDbTestBase {
 
   final int width1 = 2;

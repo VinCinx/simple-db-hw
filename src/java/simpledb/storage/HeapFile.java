@@ -88,8 +88,16 @@ public class HeapFile implements DbFile{
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+        try {
+            RandomAccessFile raf = new RandomAccessFile(this.file, "rw");
+            long offset = (long) BufferPool.getPageSize() *page.getId().getPageNumber();//raf.seek()接受的参数为long类型
+            raf.seek(offset);
+            byte[] data = page.getPageData();//todo 这里需不需要强制转换为HeapPage
+            raf.write(data);
+            raf.close();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -106,17 +114,51 @@ public class HeapFile implements DbFile{
     // see DbFile.java for javadocs
     public List<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+        for (int i = 0; i < numPages(); i++) {//pgNo从0开始
+            Page page=Database.getBufferPool().getPage(tid,new HeapPageId(getId(), i),Permissions.READ_WRITE);
+            HeapPage heapPage=(HeapPage) page;
+            int numEmptySlots=heapPage.getNumEmptySlots();
+            if(heapPage.getNumEmptySlots()==0)
+                continue;
+            else {
+                heapPage.insertTuple(t);
+                page.markDirty(true,tid);
+                ArrayList<Page> pageArrayList=new ArrayList<>();
+                pageArrayList.add(page);
+                return pageArrayList;
+            }
+        }
+        // 两种处理：1.将新建并insert一个tuple的page写入文件 下次使用再加入缓存 不太合理 因为修改都在缓存 而且这样这里不需要标记脏页 不统一；先新建、insert，再写入磁盘，再加入缓存，不用标记脏页
+        // 2.新建页面写入磁盘，立即加入缓存修改，并标记为脏页
+        // 没有空闲的页面
+        byte[] data=HeapPage.createEmptyPageData();
+        HeapPageId heapPageId=new HeapPageId(getId(),numPages());//加载到缓存的时候要用，加载到缓存不能再new 一个，numPages()再writePage()之后增加了
+        HeapPage heapPage=new HeapPage(heapPageId,data);
+        // 写入磁盘
+        writePage(heapPage);
+        // 加载到缓存并修改
+        Page page=Database.getBufferPool().getPage(tid,heapPageId,Permissions.READ_WRITE);
+        ((HeapPage)page).insertTuple(t);
+        page.markDirty(true,tid);
+        // 上面这个过程，如果先将空页面写入磁盘，然后不加到缓存就修改用byte[]新建的空的heapPage，下次缓存读的是磁盘的空页，第一次修改没有被缓存结构管理，会丢失
+        ArrayList<Page> pageArrayList=new ArrayList<>();
+        pageArrayList.add(page);
+        return pageArrayList;
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
-        // some code goes here
-        return null;
-        // not necessary for lab1
+        PageId pageId=t.getRecordId().getPageId();
+        Page page=Database.getBufferPool().getPage(tid,pageId,Permissions.READ_WRITE);
+        if(page instanceof HeapPage){
+            ((HeapPage)page).deleteTuple(t);
+            ArrayList<Page> pageArrayList=new ArrayList<>();
+            pageArrayList.add(page);
+            return pageArrayList;
+        }else {
+            throw new DbException("pageis not instanceof HeapPage");
+        }
     }
 
     // see DbFile.java for javadocs

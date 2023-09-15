@@ -9,7 +9,7 @@ import simpledb.storage.TupleDesc;
 import java.util.*;
 
 /**
- * Project is an operator that implements a relational projection.
+ * Project is an operator that implements a relational projection.；投影，该运算从表中选出指定的属性值组成一个新表
  */
 public class Project extends Operator {
 

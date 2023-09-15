@@ -18,6 +18,9 @@ import simpledb.storage.HeapFile;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab2 exercise1
+ */
 public class JoinTest extends SimpleDbTestBase {
     private static final int COLUMNS = 2;
     public void validateJoin(int table1ColumnValue, int table1Rows, int table2ColumnValue,

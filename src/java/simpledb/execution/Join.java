@@ -1,5 +1,6 @@
 package simpledb.execution;
 
+import simpledb.common.Type;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.common.DbException;
 import simpledb.storage.Tuple;
@@ -11,6 +12,14 @@ import java.util.*;
  * The Join operator implements the relational join operation.
  */
 public class Join extends Operator {
+
+    private final JoinPredicate joinPredicate;
+
+    private OpIterator child1;
+    private OpIterator child2;
+
+    private List<Tuple> tupleList=new ArrayList<>();
+    private Iterator<Tuple> it;
 
     private static final long serialVersionUID = 1L;
 
@@ -26,12 +35,13 @@ public class Join extends Operator {
      *            Iterator for the right(inner) relation to join
      */
     public Join(JoinPredicate p, OpIterator child1, OpIterator child2) {
-        // some code goes here
+        this.joinPredicate=p;
+        this.child1=child1;
+        this.child2=child2;
     }
 
     public JoinPredicate getJoinPredicate() {
-        // some code goes here
-        return null;
+        return this.joinPredicate;
     }
 
     /**
@@ -40,8 +50,9 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField1Name() {
-        // some code goes here
-        return null;
+        TupleDesc tupleDesc=child1.getTupleDesc();
+        int fieldId = this.joinPredicate.getField1();
+        return tupleDesc.getFieldName(fieldId);
     }
 
     /**
@@ -50,8 +61,9 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField2Name() {
-        // some code goes here
-        return null;
+        TupleDesc tupleDesc=child2.getTupleDesc();
+        int fieldId = this.joinPredicate.getField2();
+        return tupleDesc.getFieldName(fieldId);
     }
 
     /**
@@ -59,21 +71,45 @@ public class Join extends Operator {
      *      implementation logic.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        TupleDesc child1TupleDesc = this.child1.getTupleDesc();
+        TupleDesc child2tupleDesc = this.child2.getTupleDesc();
+        Type[] typeAr = new Type[child1TupleDesc.numFields()+child2tupleDesc.numFields()];
+        String[] fieldAr = new String[child1TupleDesc.numFields()+child2tupleDesc.numFields()];
+        int pos=0;
+        for (int i = 0; i < child1TupleDesc.numFields(); i++) {
+            typeAr[pos]=child1TupleDesc.getFieldType(i);
+            fieldAr[pos]=child1TupleDesc.getFieldName(i);
+            pos++;
+        }
+        for (int i = 0; i < child2tupleDesc.numFields(); i++) {
+            typeAr[pos]=child2tupleDesc.getFieldType(i);
+            fieldAr[pos]=child2tupleDesc.getFieldName(i);
+            pos++;
+        }
+        TupleDesc res = new TupleDesc(typeAr, fieldAr);
+        return res;
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // some code goes here
+        this.child1.open();
+        this.child2.open();
+        this.it=this.tupleList.iterator();
+        super.open();
     }
 
     public void close() {
-        // some code goes here
+        super.close();
+        this.it=null;
+        this.child2.close();
+        this.child1.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        this.child1.rewind();
+        this.child2.rewind();
+        this.tupleList.clear();
+        this.it=this.tupleList.iterator();
     }
 
     /**
@@ -93,21 +129,44 @@ public class Join extends Operator {
      * 
      * @return The next matching tuple.
      * @see JoinPredicate#filter
+     * 每次fetchNext()都缓存child1中一行对child2扫描一遍的结果，如果只计算child1中一行对child2中逐行判断，找到一个符合条件的就返回，那么需要加一个局部变量记录外层循环child1的当前Tuple，很没有必要
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        while (!it.hasNext() && child1.hasNext()){
+            this.tupleList.clear();
+            Tuple child1Tuple = child1.next();
+            child2.rewind();
+            while(child2.hasNext()){
+                Tuple tuple=new Tuple(this.getTupleDesc());
+                int pos=0;
+                for (int i = 0; i < child1Tuple.getTupleDesc().numFields(); i++) {
+                    tuple.setField(pos, child1Tuple.getField(i));
+                    pos++;
+                }
+                Tuple child2Tuple = child2.next();
+                if(!this.joinPredicate.filter(child1Tuple,child2Tuple)) continue;
+                for (int i = 0; i < child2Tuple.getTupleDesc().numFields(); i++) {
+                    tuple.setField(pos, child2Tuple.getField(i));
+                    pos++;
+                }
+                this.tupleList.add(tuple);
+            }
+            this.it=this.tupleList.iterator();
+        }
+        if(!it.hasNext()) return null;
+        return it.next();
     }
 
     @Override
     public OpIterator[] getChildren() {
-        // some code goes here
-        return null;
+        OpIterator[] opIterator = new OpIterator[]{this.child1,this.child2};
+        return opIterator;
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
-        // some code goes here
+        this.child1=children[0];
+        this.child2=children[1];
     }
 
 }

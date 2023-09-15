@@ -10,6 +10,7 @@ import simpledb.transaction.TransactionId;
 import java.io.*;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -34,6 +35,8 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    private final int maxPages;
+
     private final HashMap<Integer,Page> bufferPool;//缓冲池由很多页面组成，每个页面只能存储一个磁盘加载的页面；为什么不用list或者数组呢，因为利用哈希表可以加快数据页面在buffer pool中的定位，而不需要线性时间
 
     /**
@@ -43,6 +46,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.bufferPool = new HashMap<>(numPages);//在物理内存中申请一块可以容纳numPages个数据页的空间
+        maxPages=numPages;
     }
     
     public static int getPageSize() {
@@ -79,14 +83,17 @@ public class BufferPool {
         // some code goes here
         if(this.bufferPool.containsKey(pid.hashCode())){
             return this.bufferPool.get(pid.hashCode());
-        }else {
-            int tableId = pid.getTableId();
-            DbFile file = Database.getCatalog().getDatabaseFile(tableId);
-            Page page = file.readPage(pid);
-            //buffer pool没有足够的空间了
-            this.bufferPool.put(pid.hashCode(), page);
-            return page;
         }
+        if(bufferPool.size()>=maxPages){
+            evictPage();
+        }
+        int tableId = pid.getTableId();
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        Page page = file.readPage(pid);
+        //buffer pool没有足够的空间了
+        this.bufferPool.put(pid.hashCode(), page);
+        return page;
+
     }
 
     /**
@@ -149,8 +156,8 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        file.insertTuple(tid, t);
     }
 
     /**
@@ -168,8 +175,9 @@ public class BufferPool {
      */
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        int tableId=t.getRecordId().getPageId().getTableId();
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        file.deleteTuple(tid, t);
     }
 
     /**
@@ -178,6 +186,9 @@ public class BufferPool {
      *     break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
+        for (Map.Entry<Integer, Page> entry : bufferPool.entrySet()) {
+            flushPage(entry.getValue().getId());
+        }
         // some code goes here
         // not necessary for lab1
 
@@ -192,6 +203,7 @@ public class BufferPool {
         are removed from the cache so they can be reused safely
     */
     public synchronized void discardPage(PageId pid) {
+        this.bufferPool.remove(pid.hashCode());
         // some code goes here
         // not necessary for lab1
     }
@@ -201,6 +213,10 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized  void flushPage(PageId pid) throws IOException {
+        int tableId = pid.getTableId();
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        file.writePage(this.bufferPool.get(pid.hashCode()));
+        this.bufferPool.get(pid.hashCode()).markDirty(false, new TransactionId());
         // some code goes here
         // not necessary for lab1
     }
@@ -217,6 +233,16 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized  void evictPage() throws DbException {
+        //这里使用一个最简单的驱逐策略
+        for (Map.Entry<Integer, Page> entry : bufferPool.entrySet()) {
+            try {
+                flushPage(entry.getValue().getId());
+                discardPage(entry.getValue().getId());
+                break;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         // some code goes here
         // not necessary for lab1
     }

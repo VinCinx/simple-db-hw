@@ -13,6 +13,9 @@ import simpledb.systemtest.SimpleDbTestBase;
 import static org.junit.Assert.assertEquals;
 import junit.framework.JUnit4TestAdapter;
 
+/**
+ * lab2 exercise2
+ */
 public class StringAggregatorTest extends SimpleDbTestBase {
 
   final int width1 = 2;

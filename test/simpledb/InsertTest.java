@@ -13,6 +13,7 @@ import simpledb.storage.TupleDesc;
 import simpledb.transaction.TransactionId;
 
 /**
+ * lab2 exercise3
  * We reserve more heavy-duty insertion testing for HeapFile and HeapPage.
  * This suite is superficial.
  */

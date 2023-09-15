@@ -10,6 +10,9 @@ import simpledb.storage.HeapFile;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab2 exercise1
+ */
 public class FilterTest extends FilterBase {
     @Override
     protected int applyPredicate(HeapFile table, TransactionId tid, Predicate predicate)

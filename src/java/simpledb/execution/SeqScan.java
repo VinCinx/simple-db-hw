@@ -106,6 +106,7 @@ public class SeqScan implements OpIterator {
      *
      * @return the TupleDesc with field names from the underlying HeapFile,
      *         prefixed with the tableAlias string from the constructor.
+     *         todo 这里返回含有别名的TupleDesc，我没有在这里将this.tableid对应的表的TupleDesc设置为含有别名的TupleDesc，从别名是依赖于某个查询语句而不是依赖表的角度考虑，这样是合理的。
      */
     public TupleDesc getTupleDesc() {
         TupleDesc tupleDesc=this.heapFile.getTupleDesc();

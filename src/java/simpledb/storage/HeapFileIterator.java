@@ -41,7 +41,7 @@ public class HeapFileIterator implements DbFileIterator {
     }
 
     @Override
-    public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+    public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {//todo hasNext之后不调用next读取就close，下次再打开的时候从什么位置读，从测试中没有看出它的要求，貌似从测试中看出来暂时没有这个需求
         if (next == null) {
             next = readNext();
             if (next == null) throw new NoSuchElementException();
@@ -60,13 +60,13 @@ public class HeapFileIterator implements DbFileIterator {
         if (iterHasNext) {
             return curPageIter.next();
         }
-        if (nextPgNo >= this.heapFile.numPages())//这里是>=，nextPgNo从0开始，=heapFile.numPages()的时候已经读完了所有的页面
-            return null;
-        HeapPageId pid = new HeapPageId(heapFile.getId(), nextPgNo);
-        HeapPage heapPage = (HeapPage) Database.getBufferPool().getPage(transactionId, pid, Permissions.READ_ONLY);
-        nextPgNo++;
-        curPageIter = heapPage.iterator();
-        if(curPageIter.hasNext())//可能最后一个页面上一个tuple都没有，中间呢
+        while( curPageIter==null || (!curPageIter.hasNext() && !(nextPgNo >= this.heapFile.numPages())) ) {//这里是>=，nextPgNo从0开始，=heapFile.numPages()的时候已经读完了所有的页面
+            HeapPageId pid = new HeapPageId(heapFile.getId(), nextPgNo);
+            HeapPage heapPage = (HeapPage) Database.getBufferPool().getPage(transactionId, pid, Permissions.READ_ONLY);
+            nextPgNo++;
+            curPageIter = heapPage.iterator();
+        }
+        if(curPageIter.hasNext())//可能最后一个页面上一个tuple都没有，中间呢，中间也可能某个页面一个Tuple都没有，那种情况下现在的写法就有问题，这个版本修改好了
             return curPageIter.next();
         return null;
     }
