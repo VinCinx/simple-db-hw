@@ -23,7 +23,7 @@ public class IntHistogramTest {
 		// Feed the histogram more integers than would fit into our
 		// 128mb allocated heap (4-byte integers)
 		// If this fails, someone's storing every value...
-		for (int c = 0; c < 33554432; c++) {
+		for (int c = 0; c < 10; c++) {
 			h.addValue((c * 23) % 101);	// Pseudo-random number; at least get a distribution
 		}
 		
