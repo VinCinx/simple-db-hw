@@ -6,8 +6,10 @@ import org.junit.Assert;
 import simpledb.execution.Predicate.Op;
 import simpledb.optimizer.IntHistogram;
 
+/**
+ * lab3 exercise1
+ */
 public class IntHistogramTest {
-
 	/**
 	 * Test to confirm that the IntHistogram implementation is constant-space
 	 * (or, at least, reasonably small space; O(log(n)) might still work if

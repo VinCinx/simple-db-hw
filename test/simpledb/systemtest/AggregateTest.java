@@ -18,7 +18,7 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 /**
- * lab2 exercise2 todo
+ * lab2 exercise2
  */
 public class AggregateTest extends SimpleDbTestBase {
     public void validateAggregate(DbFile table, Aggregator.Op operation, int aggregateColumn, int groupColumn, List<List<Integer>> expectedResult)

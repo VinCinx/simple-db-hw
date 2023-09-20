@@ -102,7 +102,12 @@ public class Aggregate extends Operator {
         child.open();
         super.open();
         Type afieldType=child.getTupleDesc().getFieldType(afield);
-        Type gfieldType=child.getTupleDesc().getFieldType(gfield);
+        Type gfieldType;
+        if (gfield != -1) {
+            gfieldType=child.getTupleDesc().getFieldType(gfield);
+        }else {
+            gfieldType=null;
+        }
         if(afieldType== Type.INT_TYPE){
             aggregator=new IntegerAggregator(gfield,gfieldType,afield,aop);
         }else  if(afieldType== Type.STRING_TYPE){
