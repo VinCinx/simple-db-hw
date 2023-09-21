@@ -6,6 +6,7 @@ import simpledb.execution.*;
 import simpledb.storage.TupleDesc;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.swing.*;
 import javax.swing.tree.*;
@@ -130,7 +131,9 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic
             // nested-loops join.
-            return -1.0;
+            double joinCost=cost1+card1*cost2+card1*card2;
+            double scanCost=cost1+cost2;
+            return scanCost+joinCost;
         }
     }
 
@@ -175,8 +178,19 @@ public class JoinOptimizer {
                                                    boolean t2pkey, Map<String, TableStats> stats,
                                                    Map<String, Integer> tableAliasToId) {
         int card = 1;
-        // some code goes here
-        return card <= 0 ? 1 : card;
+        if(joinOp== Predicate.Op.EQUALS) {
+            if(t1pkey&&t2pkey)
+                return 1;
+            if(t1pkey){
+                return card2;
+            }else if(t2pkey){
+                return card1;
+            }
+            return Math.min(card1,card2);
+        }else {
+            return (int)(0.3*card1*card2);
+        }
+//        return card <= 0 ? 1 : card;
     }
 
     /**
@@ -229,16 +243,29 @@ public class JoinOptimizer {
      *         order in which they should be executed.
      * @throws ParsingException
      *             when stats or filter selectivities is missing a table in the
-     *             join, or or when another internal error occurs
+     *             join, or when another internal error occurs
      */
     public List<LogicalJoinNode> orderJoins(
             Map<String, TableStats> stats,
             Map<String, Double> filterSelectivities, boolean explain)
             throws ParsingException {
-
-        // some code goes here
-        //Replace the following
-        return joins;
+        PlanCache pc=new PlanCache();
+        for (int size = 1; size < this.joins.size()+1; size++) {
+            Set<Set<LogicalJoinNode>> allLenSubsets=enumerateSubsets(this.joins, size);
+            for(Set<LogicalJoinNode> set:allLenSubsets){
+                double minCost=Double.MAX_VALUE;
+                for(LogicalJoinNode logicalJoinNode:set){
+//                    Set<LogicalJoinNode> joinSetWithoutNodeToRemove=set;
+//                    joinSetWithoutNodeToRemove.remove(logicalJoinNode);
+                    CostCard costCard=computeCostAndCardOfSubplan(stats, filterSelectivities, logicalJoinNode, set, minCost, pc);
+                    if(costCard!=null){
+                        minCost=costCard.cost;
+                        pc.addPlan(set,costCard.cost,costCard.card,costCard.plan);
+                    }
+                }
+            }
+        }
+        return pc.getOrder(new HashSet<>(this.joins));
     }
 
     // ===================== Private Methods =================================

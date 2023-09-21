@@ -36,10 +36,10 @@ public class IntHistogram {
      * @param buckets The number of buckets to split the input value into.
      * @param min The minimum integer value that will ever be passed to this class for histogramming
      * @param max The maximum integer value that will ever be passed to this class for histogramming
-     * ；因为是整数，所以可以i进行求一下除数，然后使用hashmap，这样除了对于tuple的循环遍历，内部的复杂度为1，也就是内部不会再有排序的开销
+     * ；因为是整数，所以可以i进行求一下除数，然后使用hashmap
      */
     public IntHistogram(int buckets, int min, int max) {
-        this.buckets=10;// todo 暂时写死为10个桶 1.注意最后一个桶的范围不一定会到下面计算出的bucketRight，要特判 2.注意负数情况，计算key以min为base；min到max之间的数字越多，由于桶的数量固定，所以计算等于一个calue得到的可能性会越来越不准确，增加桶可以增加准确性
+        this.buckets=100;// todo 暂时写死为10个桶 1.注意最后一个桶的范围不一定会到下面计算出的bucketRight，要特判 2.注意负数情况，计算key以min为base；min到max之间的数字越多，由于桶的数量固定，所以计算等于一个calue得到的可能性会越来越不准确，增加桶可以增加准确性
         this.min=min;
         this.max=max;
         this.realBuckets=new HashMap<>();

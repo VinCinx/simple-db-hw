@@ -18,6 +18,9 @@ import simpledb.transaction.Transaction;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.common.Utility;
 
+/**
+ * lab3 exercise4
+ */
 public class QueryTest {
 	
 	/**
@@ -45,7 +48,7 @@ public class QueryTest {
 
 		// Create all of the tables, and add them to the catalog
 		List<List<Integer>> empTuples = new ArrayList<>();
-		HeapFile emp = SystemTestUtil.createRandomHeapFile(6, 100000, null, empTuples, "c");	
+		HeapFile emp = SystemTestUtil.createRandomHeapFile(6, 100000, null, empTuples, "c");	// 这里为col名称增加了前缀，在catalog中注册时登记的DbFile包含的是 名称带有前缀的TupleDesc；前面SeqScan中设置的是table的alias，两者不同，在不同的查询中可能会为表设置不同的alias，所以不将表的别名加入DbFile的TupleDesc
 		Database.getCatalog().addTable(emp, "emp");
 		
 		List<List<Integer>> deptTuples = new ArrayList<>();

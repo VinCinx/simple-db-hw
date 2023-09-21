@@ -1,14 +1,19 @@
 package simpledb.optimizer;
 
 import simpledb.common.Database;
+import simpledb.common.DbException;
 import simpledb.common.Type;
 import simpledb.execution.Predicate;
 import simpledb.execution.SeqScan;
 import simpledb.storage.*;
 import simpledb.transaction.Transaction;
+import simpledb.transaction.TransactionAbortedException;
+import simpledb.transaction.TransactionId;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -24,6 +29,13 @@ public class TableStats {
     private static final ConcurrentMap<String, TableStats> statsMap = new ConcurrentHashMap<>();
 
     static final int IOCOSTPERPAGE = 1000;
+
+    private int tableId;
+    private int ioCostPerPage;
+
+    private int totalTuple;
+    private Map<Integer, IntHistogram> intHistogramMap=new HashMap<>();
+    private Map<Integer, StringHistogram> stringHistogramMap=new HashMap<>();
 
     public static TableStats getTableStats(String tablename) {
         return statsMap.get(tablename);
@@ -79,6 +91,76 @@ public class TableStats {
      *            sequential-scan IO and disk seeks.
      */
     public TableStats(int tableid, int ioCostPerPage) {
+        this.tableId=tableid;
+        this.ioCostPerPage=ioCostPerPage;
+        DbFile file = Database.getCatalog().getDatabaseFile(tableid);
+        SeqScan seqScan=new SeqScan(new TransactionId(),tableid,"");
+        //为了减少扫描的次数，不直接使用lab2已经实现的Aggregate计算最大最小值，而且lab2无法计算String的最大最小值
+        try {
+            Map<Integer,Integer> maxValMap=new HashMap<>();
+            Map<Integer,Integer> minValMap=new HashMap<>();
+            seqScan.open();
+            while(seqScan.hasNext()){
+                Tuple tuple=seqScan.next();
+                this.totalTuple++;
+                for (int i = 0; i < tuple.getTupleDesc().numFields(); i++) {
+                    Type type=tuple.getTupleDesc().getFieldType(i);
+                    if(type==Type.INT_TYPE){
+                        IntField field=(IntField) tuple.getField(i);
+                        int val=field.getValue();
+                        if(maxValMap.containsKey(i)){
+                            int maxVal=maxValMap.get(i);
+                            if(val>maxVal) maxVal=val;
+                            maxValMap.put(i,maxVal);
+                        }else {
+                            maxValMap.put(i,val);
+                        }
+                        if(minValMap.containsKey(i)){
+                            int minVal=minValMap.get(i);
+                            if(val<minVal) minVal=val;
+                            minValMap.put(i,minVal);
+                        }else{
+                            minValMap.put(i,val);
+                        }
+                    }else if(type==Type.STRING_TYPE){
+                        StringField field=(StringField) tuple.getField(i);
+                        String s=field.getValue();
+                        if(stringHistogramMap.containsKey(i)){
+                            StringHistogram stringHistogram=stringHistogramMap.get(i);
+                            stringHistogram.addValue(s);
+                        }else {
+                            StringHistogram stringHistogram=new StringHistogram(100);
+                            stringHistogram.addValue(s);
+                            stringHistogramMap.put(i,stringHistogram);
+                        }
+                    }
+                }
+            }
+            for (Map.Entry<Integer, Integer> entry : maxValMap.entrySet()) {
+                int key=entry.getKey();
+                int maxVal=entry.getValue();
+                int minVal=minValMap.get(key);
+                IntHistogram intHistogram=new IntHistogram(100,minVal,maxVal);
+                intHistogramMap.put(key,intHistogram);
+            }
+            // 重置
+            seqScan.rewind();
+            while(seqScan.hasNext()) {
+                Tuple tuple = seqScan.next();
+                for (int i = 0; i < tuple.getTupleDesc().numFields(); i++) {
+                    Type type = tuple.getTupleDesc().getFieldType(i);
+                    if (type == Type.INT_TYPE) {
+                        IntField field=(IntField) tuple.getField(i);
+                        int val=field.getValue();
+                        intHistogramMap.get(i).addValue(val);
+                    }
+                }
+            }
+            seqScan.close();
+        } catch (TransactionAbortedException | DbException e) {
+            throw new RuntimeException(e);
+        }
+
         // For this function, you'll have to get the
         // DbFile for the table in question,
         // then scan through its tuples and calculate
@@ -102,8 +184,8 @@ public class TableStats {
      * @return The estimated cost of scanning the table.
      */
     public double estimateScanCost() {
-        // some code goes here
-        return 0;
+        HeapFile heapFile=new HeapFile(((HeapFile)Database.getCatalog().getDatabaseFile(tableId)).getFile(), Database.getCatalog().getTupleDesc(tableId));
+        return heapFile.numPages()*ioCostPerPage;
     }
 
     /**
@@ -116,8 +198,7 @@ public class TableStats {
      *         selectivityFactor
      */
     public int estimateTableCardinality(double selectivityFactor) {
-        // some code goes here
-        return 0;
+        return (int) (totalTuple*selectivityFactor);
     }
 
     /**
@@ -149,16 +230,19 @@ public class TableStats {
      *         predicate
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
-        // some code goes here
-        return 1.0;
+        if(intHistogramMap.containsKey(field)){
+            IntHistogram intHistogram=intHistogramMap.get(field);
+            return intHistogram.estimateSelectivity(op,((IntField)constant).getValue());
+        }
+        StringHistogram stringHistogram=stringHistogramMap.get(field);
+        return stringHistogram.estimateSelectivity(op,((StringField)constant).getValue());
     }
 
     /**
      * return the total number of tuples in this table
      * */
     public int totalTuples() {
-        // some code goes here
-        return 0;
+        return this.totalTuple;
     }
 
 }

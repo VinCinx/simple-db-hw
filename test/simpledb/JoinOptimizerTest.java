@@ -23,6 +23,9 @@ import simpledb.systemtest.SystemTestUtil;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab3 exercise3、exercise4
+ */
 public class JoinOptimizerTest extends SimpleDbTestBase {
 
     /**
@@ -110,6 +113,7 @@ public class JoinOptimizerTest extends SimpleDbTestBase {
     }
 
     /**
+     * lab3 exercise3
      * Verify that the estimated join costs from estimateJoinCost() are
      * reasonable we check various order requirements for the output of
      * estimateJoinCost.
@@ -215,6 +219,7 @@ public class JoinOptimizerTest extends SimpleDbTestBase {
     }
 
     /**
+     * lab3 exercise3
      * Verify that the join cardinalities produced by estimateJoinCardinality()
      * are reasonable
      */

@@ -19,6 +19,9 @@ import simpledb.systemtest.SimpleDbTestBase;
 import simpledb.systemtest.SystemTestUtil;
 import simpledb.transaction.TransactionAbortedException;
 
+/**
+ * lab3 exercise2
+ */
 public class TableStatsTest extends SimpleDbTestBase {
 	public static final int IO_COST = 71;
 	
