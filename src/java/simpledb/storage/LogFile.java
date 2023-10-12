@@ -2,6 +2,8 @@
 package simpledb.storage;
 
 import simpledb.common.Database;
+import simpledb.common.Permissions;
+import simpledb.transaction.LockType;
 import simpledb.transaction.TransactionId;
 import simpledb.common.Debug;
 
@@ -459,6 +461,16 @@ public class LogFile {
         synchronized (Database.getBufferPool()) {
             synchronized(this) {
                 preAppend();
+                // 暂时简单的将abort的事务对应的所有页面均从buffer pool中移除  这个暂时确实出问题了 bug看了一天才看出来
+                // 优化：事务占用的页面上该事务肯定持有了锁，有锁但是如果页面并没有修改，也就是不是脏页则不disgardPage  该优化不太好，如果事务占用了大量页面，别的事务不需要这些页面，不disgard就会占用比较多空间
+                // 再优化，尽量都disgard掉，一个页面上该事务加锁了但是没有修改页面这种也disgard掉，脏页肯定diagard掉（不是evict、不违反no steal）；但是diagard里面判断该页面上是否存在别的事务的锁，如果有则不disgard（针对读锁共享，该事务abort后，别的事务会升级锁至写锁、要求页面在buffer pool的这种情况）
+                // 具体例子：事务A持有page1的读锁，事务B同样持有page1的读锁，事务A、B均想升级读锁至写锁，事务A超时失败作出让步、abort掉，事务B获得page1的写锁，此时page1理应在buffer pool中，因为事务B进入请求写锁的函数时page1是存在于buffer pool中的（该例子通过多线程debug验证过）
+                for (int i = 0; i < tid.occupiedLocks.size(); i++) {
+                    PageId pageId=tid.occupiedLocks.get(i).getPageId();
+                    if(tid.occupiedLocks.get(i).occupyingLockAlone(tid)){
+                        Database.getBufferPool().discardPage(pageId);
+                    }
+                }
                 // some code goes here
             }
         }

@@ -26,6 +26,7 @@ import simpledb.transaction.TransactionId;
 import static org.junit.Assert.*;
 
 /**
+ * lab4 exercise3、exercise4
  * Tests running concurrent transactions.
  * You do not need to pass this test until lab3.
  */
@@ -74,6 +75,8 @@ public class TransactionTest extends SimpleDbTestBase {
         DbFileIterator it = table.iterator(tid);
         it.open();
         Tuple tup = it.next();
+        boolean b=it.hasNext();
+        assertFalse(b);
         assertEquals(threads, ((IntField) tup.getField(0)).getValue());
         it.close();
         Database.getBufferPool().transactionComplete(tid);
@@ -106,16 +109,22 @@ public class TransactionTest extends SimpleDbTestBase {
                         // read the value out of the table
                         Query q1 = new Query(ss1, tr.getId());
                         q1.start();
+                        // ！注意 一个事务试图去读tableId对应表中的tuple
                         Tuple tup = q1.next();
                         IntField intf = (IntField) tup.getField(0);
                         int i = intf.getValue();
+                        // 添加输出用于测试
+                        System.out.println("事务开始阶段：事务"+tr.getId().getId()+" i的值为："+i);
 
                         // create a Tuple so that Insert can insert this new value
                         // into the table.
                         Tuple t = new Tuple(SystemTestUtil.SINGLE_INT_DESCRIPTOR);
+                        // ！注意，这个地方非常容易出现问题，
                         t.setField(0, new IntField(i+1));
 
+
                         // sleep to get some interesting thread interleavings
+                        // 这里sleep的目的是让多个事务共同获得一个页面的读锁，如果不sleep可能第一个事务获得读锁并趁机（还没有新的事务共享同一个读锁）将读锁升级为写锁，正常执行
                         Thread.sleep(1);
 
                         // race the other threads to finish the transaction: one will win
@@ -125,10 +134,20 @@ public class TransactionTest extends SimpleDbTestBase {
                         Delete delOp = new Delete(tr.getId(), ss2);
 
                         Query q2 = new Query(delOp, tr.getId());
-
+                        // 执行删除任务的时候，需要申请读锁，但是当前页面上已经存在一个读锁，且多个事务共同持有，所以不能直接将读锁升级为写锁
+                        // 只能其中一个释放读锁，另外一个才能获得锁并继续执行
                         q2.start();
                         q2.next();
                         q2.close();
+
+                        // 添加用于测试
+                        SeqScan ss3 = new SeqScan(tr.getId(), tableId, "");
+                        Query q4 = new Query(ss3, tr.getId());
+                        q4.start();
+                        boolean b=q4.hasNext();
+                        //Tuple tup4 = q4.next();
+                        Database.getLockManager().printLockManagerMap(tr.getId(),"test");
+                        assertFalse(b);
 
                         // set up a Set with a tuple that is one higher than the old one.
                         Set<Tuple> hs = new HashSet<>();
@@ -141,10 +160,18 @@ public class TransactionTest extends SimpleDbTestBase {
                         q3.start();
                         q3.next();
                         q3.close();
+                        // 添加用于测试
+                        ss3 = new SeqScan(tr.getId(), tableId, "");
+                        q4 = new Query(ss3, tr.getId());
+                        q4.start();
+                        Tuple tup4 = q4.next();
+                        IntField intf4 = (IntField) tup4.getField(0);
+                        i = intf4.getValue();
+                        System.out.println("事务结束阶段：事务"+tr.getId().getId()+" i的值为："+i);
 
                         tr.commit();
                         break;
-                    } catch (TransactionAbortedException te) {
+                    } catch (TransactionAbortedException te) {// 如果某个事务因为死锁而抛出了TransactionAbortedException，那么这个事务要执行的内容会重新执行一次（新建一个事务执行相同的内容）
                         //System.out.println("thread " + tr.getId() + " killed");
                         // give someone else a chance: abort the transaction
                         tr.transactionComplete(true);
@@ -219,16 +246,47 @@ public class TransactionTest extends SimpleDbTestBase {
         validateTransactions(1);
     }
 
+    /**
+     *
+     * @throws IOException
+     * @throws DbException
+     * @throws TransactionAbortedException
+     * 与DeadLockTest不同，DeadLockTest某个事务超时之后就会失败、不会重试，这里事务失败之后会重试，所以如果锁处理的不好，运行效率可能非常低下
+     * ！注意：如果LockManager中设置固定超时，这个测试要么成功（但是运行时间长达1min左右），要么失败Expected:2 Actual:1也就是说这种实现方法还是会出现！！并发错误！！
+     */
     @Test public void testTwoThreads()
             throws IOException, DbException, TransactionAbortedException {
         validateTransactions(2);
     }
 
+    /**
+     *
+     * @throws IOException
+     * @throws DbException
+     * @throws TransactionAbortedException
+     * Expected :5
+     * Actual   :1
+     * 或者delete的时候发现要delete的tuple并不在页面上（这个错误之所以能发现，是因为之前严格按照文档、在delete的tuple并不在页面上情况发生时throw错误--lab之间有一定的连续性）
+     * 有并发问题
+     */
     @Test public void testFiveThreads()
             throws IOException, DbException, TransactionAbortedException {
         validateTransactions(5);
     }
-    
+
+    /**
+     *
+     * @throws IOException
+     * @throws DbException
+     * @throws TransactionAbortedException
+     * 固定的wait时间，3min之后可能出现assert error
+     * Expected :10
+     * Actual   :1
+     * 居然actual为1
+     *
+     * 随机wait时间
+     * 运行3次，都是3min左右出现delete的tuple不在当前页面上的错误
+     */
     @Test public void testTenThreads()
     throws IOException, DbException, TransactionAbortedException {
         validateTransactions(10);

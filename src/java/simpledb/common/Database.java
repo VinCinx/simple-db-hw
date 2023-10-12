@@ -2,6 +2,7 @@ package simpledb.common;
 
 import simpledb.storage.BufferPool;
 import simpledb.storage.LogFile;
+import simpledb.transaction.LockManager;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,6 +25,8 @@ public class Database {
     private final static String LOGFILENAME = "log";
     private final LogFile _logfile;
 
+    private final LockManager _lockManager;
+
     private Database() {
         _catalog = new Catalog();
         _bufferpool = new BufferPool(BufferPool.DEFAULT_PAGES);
@@ -35,6 +38,7 @@ public class Database {
             System.exit(1);
         }
         _logfile = tmp;
+        _lockManager=new LockManager();
         // startControllerThread();
     }
 
@@ -53,6 +57,11 @@ public class Database {
         return _instance.get()._catalog;
     }
 
+    /** Return the lock manager of the static Database instance */
+    public static LockManager getLockManager() {
+        return _instance.get()._lockManager;
+    }
+
     /**
      * Method used for testing -- create a new instance of the buffer pool and
      * return it
@@ -67,6 +76,7 @@ public class Database {
             e.printStackTrace();
         }
 //        _instance._bufferpool = new BufferPool(pages);
+        Database.getLockManager().resetLockManager();
         return _instance.get()._bufferpool;
     }
 

@@ -16,6 +16,9 @@ import simpledb.storage.*;
 import simpledb.transaction.Transaction;
 import simpledb.transaction.TransactionAbortedException;
 
+/**
+ * lab4 exercise3、exercise4
+ */
 public class AbortEvictionTest extends SimpleDbTestBase {
     // Note: This is a direct copy of the EvictTest method,
     // but the autograder won't necessarily have EvictTest when it runs

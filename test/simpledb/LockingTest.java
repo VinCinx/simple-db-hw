@@ -13,6 +13,9 @@ import simpledb.storage.HeapPageId;
 import simpledb.storage.PageId;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab4 exercise1、exercise2
+ */
 public class LockingTest extends TestUtil.CreateHeapFile {
   private PageId p0;
     private PageId p1;

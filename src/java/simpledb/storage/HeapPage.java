@@ -254,12 +254,16 @@ public class HeapPage implements Page {
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
+        // 用于测试
+        System.out.println(getNumEmptySlots()+" "+((IntField)t.getField(0)).getValue());
         for (int i = 0; i < tuples.length; i++) {
             if(!isSlotUsed(i)){//如果没有这个判断直接进入下面的判断，tuples[i]可能是没有内容的，会NullPointerException
                 continue;
             }
             if(t.getRecordId().equals(tuples[i].getRecordId())){
                 markSlotUsed(i, false);
+                // 用于测试
+                System.out.println(getNumEmptySlots()+" "+((IntField)t.getField(0)).getValue());
                 return;
             }
         }
@@ -371,11 +375,16 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
+        // 用于测试
+        System.out.println("获得iterator时的空闲slot数量"+getNumEmptySlots()+" ");
         ArrayList<Tuple> usedTuples = new ArrayList<>();
         for (int i = 0; i < this.numSlots; i++) {
             if(this.isSlotUsed(i))
                 usedTuples.add(this.tuples[i]);
         }
+        // 用于测试
+        System.out.println("已经占用的tuple数据"+Arrays.toString(usedTuples.toArray()));
+        System.out.println();
         return usedTuples.iterator();
     }
 

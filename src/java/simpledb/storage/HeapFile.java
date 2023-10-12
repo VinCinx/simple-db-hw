@@ -115,12 +115,14 @@ public class HeapFile implements DbFile{
     public List<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         for (int i = 0; i < numPages(); i++) {//pgNo从0开始
-            Page page=Database.getBufferPool().getPage(tid,new HeapPageId(getId(), i),Permissions.READ_WRITE);
+            Page page=Database.getBufferPool().getPage(tid,new HeapPageId(getId(), i),Permissions.READ_ONLY);// 查看是否有空闲slot的时候申请读锁就够了
             HeapPage heapPage=(HeapPage) page;
             int numEmptySlots=heapPage.getNumEmptySlots();
-            if(heapPage.getNumEmptySlots()==0)
+            if(heapPage.getNumEmptySlots()==0) {
+                Database.getLockManager().releaseReadLock(page.getId(), tid);// 如果没有空闲slot，立即释放读锁，这在文档中提到了
                 continue;
-            else {
+            }else {
+                page=Database.getBufferPool().getPage(tid,new HeapPageId(getId(), i),Permissions.READ_WRITE);
                 heapPage.insertTuple(t);
                 page.markDirty(true,tid);
                 ArrayList<Page> pageArrayList=new ArrayList<>();
@@ -153,11 +155,12 @@ public class HeapFile implements DbFile{
         Page page=Database.getBufferPool().getPage(tid,pageId,Permissions.READ_WRITE);
         if(page instanceof HeapPage){
             ((HeapPage)page).deleteTuple(t);
+            page.markDirty(true,tid);// delete也要标记为脏页，一开始忘了，测试没出错（lab4文档里说了test并没有测试这一点）
             ArrayList<Page> pageArrayList=new ArrayList<>();
             pageArrayList.add(page);
             return pageArrayList;
         }else {
-            throw new DbException("pageis not instanceof HeapPage");
+            throw new DbException("page is not instanceof HeapPage");
         }
     }
 

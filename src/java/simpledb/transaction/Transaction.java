@@ -1,8 +1,11 @@
 package simpledb.transaction;
 
 import simpledb.common.Database;
+import simpledb.storage.Page;
+import simpledb.storage.PageId;
 
 import java.io.*;
+import java.util.ArrayList;
 
 /**
  * Transaction encapsulates information about the state of

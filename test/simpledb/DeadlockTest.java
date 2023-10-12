@@ -16,6 +16,9 @@ import simpledb.storage.HeapPageId;
 import simpledb.storage.PageId;
 import simpledb.transaction.TransactionId;
 
+/**
+ * lab4 exercise5
+ */
 public class DeadlockTest extends TestUtil.CreateHeapFile {
   private PageId p0;
     private PageId p1;
@@ -175,6 +178,10 @@ public class DeadlockTest extends TestUtil.CreateHeapFile {
    * Not-so-unit test to construct a deadlock situation.
    * t1 acquires p0.read; t2 acquires p0.read; t1 attempts to upgrade to
    * p0.write; t2 attempts to upgrade to p0.write
+   * 这个是最容易出错的，经典场景（transactionTest的testTwoThreads就是这样的场景）：两个线程1、2执行2个事务，如果事务失败，则线程新建一个事务，执行与之前失败事务相同的执行内容
+   * A、B事务均得到写锁，然后都想获得读锁（都想升级读锁至写锁），其中一个事务必须先abort失败另外一个事务才能将读锁独自占有，才有条件将读锁升级为写锁：原来的bug LockManager中，
+   * 包含wait()的while循环只会判断需要加读锁的页面上是否含有锁，而没有考虑到含有锁且锁为读锁、虽然有读锁但是该读锁被当前事务独自占有的情况。
+   * 更正：在while循环中考虑上述情况，并且在while循环后判断一下，如果是锁升级就不要将创建的写锁加入lockManager map中了。
    */
   @Test public void testUpgradeWriteDeadlock() throws Exception {
     System.out.println("testUpgradeWriteDeadlock constructing deadlock:");

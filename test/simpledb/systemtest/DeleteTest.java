@@ -18,7 +18,7 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 /**
- * lab2 exercise4
+ * lab2 exercise4；完成lab4 LockManager，但是尚未完成lab4 exercise4的transactionComplete()方法时，该测试会一直转圈圈，因为该测试内调用transactionComplete()释放锁时实际上并没有释放锁，后续transaction获取锁失败一直wait()；一开始lab2能通过是因为没有加锁，也就不需要释放锁
  */
 public class DeleteTest extends FilterBase {
     List<List<Integer>> expectedTuples = null;
