@@ -223,9 +223,9 @@ public class BufferPool {
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // 用于测试的输出代码
-        if(t.getField(0) instanceof IntField){
-            System.out.println("事务"+tid.getId()+" 想要insert的值："+((IntField) t.getField(0)).getValue());
-        }
+//        if(t.getField(0) instanceof IntField){
+//            System.out.println("事务"+tid.getId()+" 想要insert的值："+((IntField) t.getField(0)).getValue());
+//        }
         DbFile file = Database.getCatalog().getDatabaseFile(tableId);
         file.insertTuple(tid, t);
     }
@@ -246,9 +246,9 @@ public class BufferPool {
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // 用于测试的输出代码
-        if(t.getField(0) instanceof IntField){
-            System.out.println("事务"+tid.getId()+" 想要delete的值："+((IntField) t.getField(0)).getValue());
-        }
+//        if(t.getField(0) instanceof IntField){
+//            System.out.println("事务"+tid.getId()+" 想要delete的值："+((IntField) t.getField(0)).getValue());
+//        }
         int tableId=t.getRecordId().getPageId().getTableId();
         DbFile file = Database.getCatalog().getDatabaseFile(tableId);
         file.deleteTuple(tid, t);

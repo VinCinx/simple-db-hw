@@ -109,7 +109,6 @@ public class TransactionTest extends SimpleDbTestBase {
                         // read the value out of the table
                         Query q1 = new Query(ss1, tr.getId());
                         q1.start();
-                        // ！注意 一个事务试图去读tableId对应表中的tuple
                         Tuple tup = q1.next();
                         IntField intf = (IntField) tup.getField(0);
                         int i = intf.getValue();
