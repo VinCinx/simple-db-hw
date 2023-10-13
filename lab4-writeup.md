@@ -142,6 +142,6 @@ TransactionTest有报错，执行测试多次，可能出现不同的报错：
 
 
 
-todo：
+Lab4新涉及的类：
 
-删除不必要的调试代码提交
+主要集中在simpledb.transaction文件夹中，其中新增了锁管理器需要的类：LockManager、Lock，类关系简明、省略类图。
