@@ -328,10 +328,17 @@ public class BufferPool {
         //这里使用一个最简单的驱逐策略，找到第一个clean page，不管这个clean page上面有没有锁
         for (Map.Entry<Integer, Page> entry : bufferPool.entrySet()) {
             try {
-                if(entry.getValue().isDirty()==null){
+                if(entry.getValue().isDirty()==null){// 这里只移除非脏页，因为未提交的脏页不可以移除，abort的脏页在abort的时候处理这里不需要处理，如果abort的脏页这里处理了那么就还需要额外考虑并发问题（如果两个地方都处理了会不会出错之类的问题）
                     flushPage(entry.getValue().getId());// 这一句其实是多余的，因为没有发生修改，所以不需要flush
-                    // todo 怎么处理释放的页面上已经存在的锁 假设有锁的不能驱逐
+                    // 如果设置为能够驱逐有读写锁的非脏页，则有可能出现lab4_writeup中详细描述的丢失修改的错误（虽然这个错误在测试中并没有要求，简单地这样驱逐，给出的测试并不会出问题，但是还是完善一下逻辑）
+                    // 那么怎么处理释放的页面上已经存在的锁 假设有锁的不能驱逐 这样设置最保守 设置之后EvictionTest会报错：驱逐的页面不够、测试占用的空间过大 因为buffer pool中的页面大多数有锁（一个transaction abort的时候会释放掉它独占锁的页面，保留共享读锁的页面；commit的时候目前的实现只会flush刷新脏页，页面不会从buffer pool中移除discard掉，所以事务commit后释放锁，页面还在buffer pool中，此时该页面是无所的状态，commit的这种设置还算合理，留在buffer pool中能够使得下个事务访问相同数据页面时更快、不需要访问磁盘）
+                    // 可以考虑的实现方式有：
+                    // 1.移除所有非脏页上的锁之后，驱逐所有非脏页（不能先驱逐后移除锁，这样还是有可能出现丢失修改问题）
+                    // 2.或者，移除所有有写锁的非脏页，锁不作处理（读锁只读所以不会出现丢失修改问题，读锁占用期间不会有事务通过写更改读锁对应的内容，所以也不会出现两次读不一致）
+                    // 按照方法2实现之后
                     if(!Database.getLockManager().pageLocked(entry.getValue().getId())){
+                        discardPage(entry.getValue().getId());
+                    }else if(Database.getLockManager().pageLockedByRead(entry.getValue().getId())){
                         discardPage(entry.getValue().getId());
                     }
                     allDirtied=false;

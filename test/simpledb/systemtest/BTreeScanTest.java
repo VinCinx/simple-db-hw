@@ -22,6 +22,16 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 /**
+ * lab5 exercise1
+ * 一开始testSmall()和testReadPage()两个测试有问题，会报错throw new RuntimeException("all type lock not exist in the page, the pageI...，也就是锁莫名奇妙没了，对测试debug之后发现锁会在某个时刻突然全没了，但是TransactionId中的occupiedLocks还包含锁，也就是事务还持有锁，这是及其不合理的
+ * 通过很多锁会突然全部消失的行为，估计应该是测试调用了 resetLockManager() 导致的，该函数只在resetBufferPool函数中被调用，测试中确实调用了resetBufferPool
+ * resetBufferPool中调用resetLockManager()是我在完成lab4时添加的，lab4有一个测试LockingTest，该测试的setUp()函数中有一行注释，表明了希望通过resetBufferPool释放已有的锁状态，所以我在resetBufferPool中调用resetLockManager()释放所有锁
+ * but，当时没有考虑到释放锁时，将持有这些锁的事务也进行更新，让所有事务不再持有锁（因为锁全部被释放了），在LockingTest中由于占用这些锁的事务最终并没有commit或者abort释放锁，所以没有报运行时错误throw new RuntimeException("all type lock not exist in the page, the pageI...
+ * 不过当时没有想起将事务对应的锁释放也正常，因为resetBufferPool本就是一个专门为测试设计的方法，一般不会调用，当时只读到注释要求resetBufferPool能释放锁于是就简单添加该功能。不过这个功能确实不能在实验代码中一开始就写的完备（包含释放锁、释放事务占用的锁的功能），因为初始代码中没有添加事务和锁，这都是lab4中实现的。
+ *
+ * 定位到问题就很简单了，在resetLockManager()中添加代码，释放所有锁的同时，释放所有事务占用的锁，让事务回到一个锁也不占用的初始状态
+ * 修改后，本测试中的4个小测试全部通过。
+ *
  * Dumps the contents of a table.
  * args[1] is the number of columns.  E.g., if it's 5, then BTreeScanTest will end
  * up dumping the contents of f4.0.txt.

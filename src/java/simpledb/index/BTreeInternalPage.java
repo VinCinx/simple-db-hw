@@ -97,7 +97,7 @@ public class BTreeInternalPage extends BTreePage {
 			// start from 1 because the first key slot is not used
 			// since a node with m keys has m+1 pointers
 			keys[0] = null;
-			for (int i=1; i<keys.length; i++)
+			for (int i=1; i<keys.length; i++)// 这里的循环从1开始，header中的第一个bit对应的slot比较特殊，该slot位置放的entry没有keyField，只有指向子节点的指针
 				keys[i] = readNextKey(dis,i);
 		}catch(NoSuchElementException e){
 			e.printStackTrace();
@@ -117,14 +117,14 @@ public class BTreeInternalPage extends BTreePage {
 	}
 
 	/** 
-	 * Retrieve the maximum number of entries this page can hold. (The number of keys)
+	 * Retrieve the maximum number of entries this page can hold. (The number of keys，不是pointers to children的数量)
  	 */
 	public int getMaxEntries() {        
 		int keySize = td.getFieldType(keyField).getLen();
-		int bitsPerEntryIncludingHeader = keySize * 8 + INDEX_SIZE * 8 + 1;
+		int bitsPerEntryIncludingHeader = keySize * 8 + INDEX_SIZE * 8 + 1;// 一条entry（记录，占用一个页面中的一个slot）的大小包括：键占用的空间，指向子节点的指针占用的空间，一个slot需要在header中占用1个bit来标记该slot是否已经被占用
 		// extraBits are: one parent pointer, 1 byte for child page category, 
 		// one extra child pointer (node with m entries has m+1 pointers to children), 1 bit for extra header
-		int extraBits = 2 * INDEX_SIZE * 8 + 8 + 1;
+		int extraBits = 2 * INDEX_SIZE * 8 + 8 + 1;// 即2个指针占用的bits数目+标记子页面类型使用的1个byte+1 bit for extra header指的是m+1中加的1，也就是多出来的pointer，该pointer也要使用到一个slot标记位、额外占用1个bit
         return (BufferPool.getPageSize()*8 - extraBits) / bitsPerEntryIncludingHeader;
 	}
 
@@ -266,6 +266,7 @@ public class BTreeInternalPage extends BTreePage {
             }
         }
 
+		//从这里可以看出，一个BTreeInternalPage序列化存储到磁盘上的文件上有m keys和m+1 pointers，没有像解析到对象中后的内容那样（即使key数量相比pointers少一个，但是两者开辟的数组长度一致，只不过key对应数组的第一个位置没有填数据）
 		// create the keys
 		// start from 1 because the first key slot is not used
 		// since a node with m keys has m+1 pointers
@@ -318,7 +319,7 @@ public class BTreeInternalPage extends BTreePage {
 			}
 		}
 
-		// padding
+		// padding  一个页面的字节数量并不总是恰好用完，所以没用到的字节要填0
 		int zerolen = BufferPool.getPageSize() - (INDEX_SIZE + 1 + header.length + 
 				td.getFieldType(keyField).getLen() * (keys.length - 1) + INDEX_SIZE * children.length); 
 		byte[] zeroes = new byte[zerolen];
@@ -362,7 +363,7 @@ public class BTreeInternalPage extends BTreePage {
 		else {
 			for(int i = rid.getTupleNumber() - 1; i >= 0; i--) {
 				if(isSlotUsed(i)) {
-					children[i] = children[rid.getTupleNumber()];
+					children[i] = children[rid.getTupleNumber()];// 结合lab5给出的数节点结构图更容易理解，删除左边的child时、要将左边的child用右边的child覆盖，然后再通过下一句markSlotUsed来删除key和该key右边的child
 					markSlotUsed(rid.getTupleNumber(), false);
 					break;
 				}	
@@ -488,7 +489,7 @@ public class BTreeInternalPage extends BTreePage {
 		for (int i=0; i<numSlots; i++) {
 			if(isSlotUsed(i)) {
 				if(children[i] == e.getLeftChild().getPageNumber() || children[i] == e.getRightChild().getPageNumber()) {
-					if(i > 0 && keys[i].compare(Op.GREATER_THAN, e.getKey())) {
+					if(i > 0 && keys[i].compare(Op.GREATER_THAN, e.getKey())) {// 增加i>0条件的原因：key数组在i=0的时候是null，也就是指针数组中的第一个指针、也就是最左边的左节点，不好取对应的key，因为lab中将key和右边的节点强绑定，实际理论上key值也是取右边子节点中的最小值
 						throw new DbException("attempt to insert invalid entry with left child " + 
 								e.getLeftChild().getPageNumber() + ", right child " +
 								e.getRightChild().getPageNumber() + " and key " + e.getKey() +

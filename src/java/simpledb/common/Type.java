@@ -40,7 +40,7 @@ public enum Type implements Serializable {
                 int strLen = dis.readInt();
                 byte[] bs = new byte[strLen];
                 dis.read(bs);
-                dis.skipBytes(STRING_LEN-strLen);
+                dis.skipBytes(STRING_LEN-strLen);// todo 似乎没有考虑字符串过长时该如何处理
                 return new StringField(new String(bs), STRING_LEN);
             } catch (IOException e) {
                 throw new ParseException("couldn't parse", 0);

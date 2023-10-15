@@ -79,7 +79,7 @@ public class HeapPage implements Page {
         for(int i=0; i<this.td.numFields(); i++){
             nrecbytes+=td.getFieldType(i).getLen();
         }
-        int nrecords = (BufferPool.getPageSize() * 8) /  (nrecbytes * 8 + 1);  //floor comes for free
+        int nrecords = (BufferPool.getPageSize() * 8) /  (nrecbytes * 8 + 1);  //floor comes for free；除数是nrecbytes * 8再加上1的原因是，一个slot（放tuple的地方，字节数大小就是tuple的字节数大小）还需要一个bit去记录该slot是否已经被占用、填上了数据
         return nrecords;
     }
 

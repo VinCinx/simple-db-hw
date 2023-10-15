@@ -13,7 +13,7 @@ public class BTreePageId implements PageId {
 	public final static int ROOT_PTR = 0;
 	public final static int INTERNAL = 1;
 	public final static int LEAF = 2;
-	public final static int HEADER = 3;
+	public final static int HEADER = 3;// header page的作用：keep track of which pages in the file are in use
 
 	private final int tableId;
 	private final int pgNo;

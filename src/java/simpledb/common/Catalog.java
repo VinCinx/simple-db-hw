@@ -50,6 +50,18 @@ public class Catalog {
     public void addTable(DbFile file, String name, String pkeyField) {
         // 这里将使用一个class包裹一下，精简成只用一个hashmap更好，原来我是这么想的，觉得实验中可能尽量不要新建辅助类，所以改成这样。。
         // 做到lab1 exercise5 实现HeapFile的iterator的时候证明我多虑了，新建类很正常。
+        // 如果插入同名表，则先舍弃前一个同名表的数据
+        if(tableNames.containsValue(name)){
+            for (Map.Entry<Integer, String> entry : tableNames.entrySet()) {
+                if(entry.getValue().equals(name)){
+                    Integer tableId=entry.getKey();
+                    dbfiles.remove(tableId);
+                    tableNames.remove(tableId);
+                    pkeyFieldNames.remove(tableId);
+                    break;
+                }
+            }
+        }
         dbfiles.put(file.getId(), file);
         tableNames.put(file.getId(), name);
         pkeyFieldNames.put(file.getId(), pkeyField);

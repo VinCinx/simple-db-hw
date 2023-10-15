@@ -21,7 +21,7 @@ public abstract class BTreePage implements Page {
 	protected volatile boolean dirty = false;
 	protected volatile TransactionId dirtier = null;
 
-	protected final static int INDEX_SIZE = Type.INT_TYPE.getLen();
+	protected final static int INDEX_SIZE = Type.INT_TYPE.getLen();// 索引大小，即父子节点之间的指针大小，在此lab中指针使用Integer类型存储
 
 	protected final BTreePageId pid;
 	protected final TupleDesc td;

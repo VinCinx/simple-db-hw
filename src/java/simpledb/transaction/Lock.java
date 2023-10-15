@@ -28,6 +28,7 @@ public class Lock {
             if(lockTransactionIdList.contains(transactionId))// 该事务已经申请了这个读锁，防御式编程
                 return true;
             lockTransactionIdList.add(transactionId);
+            System.out.println("add read lock, tableId: "+pageId.getTableId()+", pgNo: "+pageId.getPageNumber());
             transactionId.occupiedLocks.add(this);
             return true;
         }else {

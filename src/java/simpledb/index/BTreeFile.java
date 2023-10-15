@@ -19,6 +19,7 @@ import simpledb.transaction.TransactionId;
  * a set of internal pages, and a set of leaf pages, which contain a collection of tuples
  * in sorted order. BTreeFile works closely with BTreeLeafPage, BTreeInternalPage,
  * and BTreeRootPtrPage. The format of these pages is described in their constructors.
+ * todo 如果实验能给出一个将B+树结构可视化打印的方法就更好了
  * 
  * @see BTreeLeafPage#BTreeLeafPage
  * @see BTreeInternalPage#BTreeInternalPage
@@ -187,8 +188,67 @@ public class BTreeFile implements DbFile {
 	private BTreeLeafPage findLeafPage(TransactionId tid, Map<PageId, Page> dirtypages, BTreePageId pid, Permissions perm,
                                        Field f)
 					throws DbException, TransactionAbortedException {
-		// some code goes here
-        return null;
+		BTreeRootPtrPage rootPtr = (BTreeRootPtrPage) getPage(tid, dirtypages, BTreeRootPtrPage.getId(tableid), Permissions.READ_ONLY);
+		BTreePageId curPageId = rootPtr.getRootId();
+		BTreePage curPage = null;
+		// f为null时，返回最左边的叶节点
+		if(f==null){
+			while(!(curPageId.pgcateg()==BTreePageId.LEAF)) {
+				BTreeInternalPage bTreeInternalPage =(BTreeInternalPage) getPage(tid, dirtypages, curPageId, Permissions.READ_ONLY);
+				int numSlots = bTreeInternalPage.getMaxEntries() + 1;
+				for (int i = 1; i < numSlots; i++) {
+					if (bTreeInternalPage.isSlotUsed(i)) {
+						BTreePageId bTreePageId=bTreeInternalPage.getChildId(i-1);// 取最左边的key的左边的子节点
+						curPageId=bTreePageId;
+						break;
+					}
+				}
+			}
+			BTreeLeafPage firstLeftLeafPage=(BTreeLeafPage) getPage(tid, dirtypages, curPageId, Permissions.READ_WRITE);
+			return firstLeftLeafPage;
+		}
+
+		while(!(curPageId.pgcateg()==BTreePageId.LEAF)) {
+			BTreeInternalPage bTreeInternalPage =(BTreeInternalPage) getPage(tid, dirtypages, curPageId, Permissions.READ_ONLY);
+			int numSlots = bTreeInternalPage.getMaxEntries() + 1;
+			boolean curpageUpdated=false;
+			for (int i = 1; i < numSlots; i++) {
+				if (bTreeInternalPage.isSlotUsed(i)) {
+					if (bTreeInternalPage.getKey(i).compare(Op.GREATER_THAN_OR_EQ, f)) {
+						BTreePageId bTreePageId=bTreeInternalPage.getChildId(i-1);// 取该key的左边的子节点
+						curPageId=bTreePageId;
+						curpageUpdated=true;
+						break;
+					}
+				}
+			}
+			if(!curpageUpdated){
+				for(int i=numSlots-1;i>0;i--){// 从右侧开始，找到第一个key，取该key的右边的子节点
+					if (bTreeInternalPage.isSlotUsed(i)) {
+						BTreePageId bTreePageId=bTreeInternalPage.getChildId(i);
+						curPageId=bTreePageId;
+						curpageUpdated=true;
+					}
+				}
+			}
+		}
+		BTreeLeafPage leafPage=(BTreeLeafPage) getPage(tid, dirtypages, curPageId, Permissions.READ_WRITE);
+		Iterator<Tuple> bTreeLeafPageReverseIterator=leafPage.reverseIterator();
+		boolean leafPageFinded=false;
+		if(bTreeLeafPageReverseIterator.hasNext()){
+			Tuple t=bTreeLeafPageReverseIterator.next();
+			System.out.println("test0  "+t.getField(this.keyField)+":"+f);
+			if(t.getField(this.keyField).compare(Op.GREATER_THAN_OR_EQ,f)){
+				leafPageFinded=true;
+			}
+		}
+		//因为是寻找left-most page possibly containing the key field f（此方法的注释中有描述），所以不需要这段代码
+//		if(!leafPageFinded){
+//			curPageId=leafPage.getRightSiblingId();
+//			leafPage=(BTreeLeafPage) getPage(tid, dirtypages, curPageId, Permissions.READ_WRITE);
+//			leafPageFinded=true;
+//		}
+        return leafPage;
 	}
 	
 	/**
@@ -432,7 +492,7 @@ public class BTreeFile implements DbFile {
 		BTreePageId rootId = rootPtr.getRootId();
 
 		if(rootId == null) { // the root has just been created, so set the root pointer to point to it		
-			rootId = new BTreePageId(tableid, numPages(), BTreePageId.LEAF);
+			rootId = new BTreePageId(tableid, numPages(), BTreePageId.LEAF);// 根节点在一开始数据不多的时候也是叶节点
 			rootPtr = (BTreeRootPtrPage) getPage(tid, dirtypages, BTreeRootPtrPage.getId(tableid), Permissions.READ_WRITE);
 			rootPtr.setRootId(rootId);
 		}

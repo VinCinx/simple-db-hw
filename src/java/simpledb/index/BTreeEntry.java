@@ -6,6 +6,7 @@ import simpledb.storage.RecordId;
 import java.io.Serializable;
 
 /**
+ * 这是一个抽象，之所以说是一个抽象是因为之际存储的磁盘文件中，并不是像这个类描述的这样、一个key和2个pointer组合成一个整体，这样的话如果有m个key，就会额外存储m-1冗余的、重复的pointer
  * Each instance of BTreeEntry stores one key and two child page ids. It is used
  * by BTreeInternalPage as an abstraction to iterate through the entries stored inside. 
  * All of the entries or tuples in the left child page should be less than or equal to 

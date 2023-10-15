@@ -52,7 +52,7 @@ public class LockingTest extends TestUtil.CreateHeapFile {
     this.tid1 = new TransactionId();
     this.tid2 = new TransactionId();
 
-    // forget about locks associated to tid, so they don't conflict with
+    // forget about locks associated to tid, so they don't conflict with  从这句话可以看出该lab希望通过resetBufferPool释放锁（resetBufferPool的时候不需要承担flush的责任），而原来的resetBufferPool没有这个功能，需要自己添加
     // test cases
     bp.getPage(tid, p0, Permissions.READ_WRITE).markDirty(true, tid);
     bp.getPage(tid, p1, Permissions.READ_WRITE).markDirty(true, tid);

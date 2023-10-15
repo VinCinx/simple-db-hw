@@ -63,13 +63,16 @@ public class LockManager {
     public synchronized boolean releaseReadLock(PageId pageId, TransactionId transactionId){
         Lock lock;
         if(!lockManager.containsKey(pageId)){
-            throw new RuntimeException("all type lock not exist in the page");
+            throw new RuntimeException("all type lock not exist in the page, the pageId {tableId: "+pageId.getTableId()+", pgNo: "+pageId.getPageNumber());
         }
         lock=lockManager.get(pageId);
-        if(lock.getLockType()!=LockType.Read)
+        if(lock.getLockType()!=LockType.Read) {
 //            throw new RuntimeException("read type lock not exist in the page");
+            System.out.println("change release read lock");
             return true;// 写锁被升级为读锁，释放读锁直接返回，这里是一个特判断 todo
+        }
         LockStatus lockStatus=lock.releaseLock(transactionId);
+        System.out.println("release read lock, the pageId {tableId: "+pageId.getTableId()+", pgNo: "+pageId.getPageNumber());
         if(lockStatus==LockStatus.Released){
             lockManager.remove(pageId);
             notifyAll();
@@ -130,6 +133,7 @@ public class LockManager {
         if(lock.getLockType()!=LockType.Write)
             throw new RuntimeException("write type lock not exist in the page");
         LockStatus lockStatus=lock.releaseLock(transactionId);
+        System.out.println("release write lock, the pageId {tableId: "+pageId.getTableId()+", pgNo: "+pageId.getPageNumber());
         if(lockStatus==LockStatus.Released){
             lockManager.remove(pageId);
             notifyAll();
@@ -145,9 +149,29 @@ public class LockManager {
     }
 
     /**
+     * 判断某个页面上是否持有读锁
+     */
+    public synchronized boolean pageLockedByRead(PageId pageId){
+        if(!this.lockManager.containsKey(pageId))
+            return false;
+        Lock lock=this.lockManager.get(pageId);
+        if(lock.getLockType()==LockType.Read)
+            return true;
+        return false;
+    }
+
+    /**
      * 谨慎调用，目前只在buffer pool的重置方法里调用一次，因为锁的状态暂时可以理解为通过buffer pool管理
      */
     public synchronized void resetLockManager(){
+        for (Map.Entry<PageId, Lock> entry : this.lockManager.entrySet()) {
+            Lock lock=entry.getValue();
+            ArrayList<TransactionId> transactionIdArrayList=lock.getLockTransactionIdList();
+            for (int j = 0; j < transactionIdArrayList.size(); j++) {
+                TransactionId transactionId=transactionIdArrayList.get(j);
+                transactionId.occupiedLocks.clear();
+            }
+        }
         this.lockManager.clear();
     }
 
@@ -161,11 +185,11 @@ public class LockManager {
         System.out.println("事务id："+transactionId.getId());
         System.out.println("此时该事务占用的锁：");
         for (int i = 0; i < transactionId.occupiedLocks.size(); i++) {
-            System.out.println("锁对应的pgNo: "+transactionId.occupiedLocks.get(i).getPageId().getPageNumber()+", LockType: "+transactionId.occupiedLocks.get(i).getLockType());
+            System.out.println("锁对应的tableId: "+transactionId.occupiedLocks.get(i).getPageId().getTableId()+", 锁对应的pgNo: "+transactionId.occupiedLocks.get(i).getPageId().getPageNumber()+", LockType: "+transactionId.occupiedLocks.get(i).getLockType());
         }
         System.out.println("此时的锁状态：");
         for (Map.Entry<PageId, Lock> entry : lockManager.entrySet()) {
-            StringBuilder output= new StringBuilder("锁对应的pgNo: " + entry.getKey().getPageNumber() + ", LockType: " + entry.getValue().getLockType() + ", lockTransactionIdList: ");
+            StringBuilder output= new StringBuilder("锁对应的tableId: "+entry.getKey().getTableId()+", 锁对应的pgNo: " + entry.getKey().getPageNumber() + ", LockType: " + entry.getValue().getLockType() + ", lockTransactionIdList: ");
             for (int i = 0; i < entry.getValue().getLockTransactionIdList().size(); i++) {
                 output.append(entry.getValue().getLockTransactionIdList().get(i).getId()).append(" ");
             }
